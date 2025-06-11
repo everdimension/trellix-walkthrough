@@ -8,8 +8,16 @@
 html,
 body {
   @apply bg-white dark:bg-gray-950;
+}
+
+:root {
+  --text-200: var(--color-gray-200);
+  --text-300: var(--color-gray-300);
+  --text-900: var(--color-gray-900);
 
   @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+    --text-200: var(--color-gray-900);
+    --text-300: var(--color-gray-700);
+    --text-900: var(--color-gray-200);
   }
 }
