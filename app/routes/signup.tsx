@@ -1,27 +1,56 @@
 import type { ActionFunctionArgs } from "react-router";
 import { Form, Link } from "react-router";
 import type { Route } from "./+types/signup";
+import { authCookie } from "~/auth.server";
+import { redirect } from "react-router";
+
+function createAccount({
+  email,
+  password,
+}: {
+  email: string;
+  password: string;
+}) {
+  return { id: 1 };
+}
+
+function validate(data: {
+  email: string;
+  password: string;
+  repeatPassword: string;
+}) {
+  let errors: { email?: string; password?: string } = {};
+  if (!data.email) {
+    errors.email = "You must provide an email address";
+  } else if (!data.email?.includes("@")) {
+    errors.email = "Invalid email";
+  }
+  if (!data.password) {
+    errors.password = "You must provide a password";
+  } else if (data.password !== data.repeatPassword) {
+    errors.password = "Passwords do not match";
+  }
+  return Object.keys(errors).length ? errors : null;
+}
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
   const repeatPassword = String(formData.get("repeatPassword"));
-  let errors: { email?: string; password?: string } = {};
-  if (!email) {
-    errors.email = "You must provide an email address";
-  } else if (!email?.includes("@")) {
-    errors.email = "Invalid email";
-  }
-  if (!password) {
-    errors.password = "You must provide a password";
-  } else if (password !== repeatPassword) {
-    errors.password = "Passwords do not match";
-  }
 
-  return {
-    errors: Object.keys(errors).length ? errors : null,
-  };
+  const errors = validate({ email, password, repeatPassword });
+  if (errors) {
+    return { errors };
+  } else {
+    const user = createAccount({ email, password });
+    console.log("redirecting", user);
+    return redirect("/", {
+      headers: {
+        "Set-Cookie": await authCookie.serialize(user.id),
+      },
+    });
+  }
 }
 
 export default function Signup({ actionData }: Route.ComponentProps) {
@@ -108,7 +137,7 @@ export default function Signup({ actionData }: Route.ComponentProps) {
               type="submit"
               className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
-              Sign in
+              Sign up
             </button>
           </div>
         </Form>

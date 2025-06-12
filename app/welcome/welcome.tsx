@@ -29,6 +29,12 @@ export function Welcome() {
               <li>
                 <Link to="/login">login</Link>
               </li>
+              <li>
+                <Link to="/signup">signup</Link>
+              </li>
+              <li>
+                <a href="/signup">signup</a>
+              </li>
               {resources.map(({ href, text, icon }) => (
                 <li key={href}>
                   <a
