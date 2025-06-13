@@ -3,12 +3,15 @@ import {
   index,
   layout,
   route,
+
 } from "@react-router/dev/routes";
 
 export default [
   layout("./components/PageLayout.tsx", [
-    index("routes/home.tsx"),
+    index("routes/index.tsx"),
     route("/signup", "routes/signup.tsx"),
     route("/login", "routes/login.tsx"),
+    route("/logout", "routes/logout.ts"),
+    route("/home", "routes/home.tsx"),
   ]),
 ] satisfies RouteConfig;

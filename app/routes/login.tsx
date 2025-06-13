@@ -1,6 +1,61 @@
-import { Link } from "react-router";
+import { getError } from "get-error";
+import {
+  data,
+  Form,
+  Link,
+  redirect,
+  type ActionFunctionArgs,
+} from "react-router";
+import { authCookie } from "~/auth.server";
+import { login } from "~/server/database/account.server";
+import type { Route } from "./+types/login";
 
-function LoginForm() {
+function validate(data: { email: string; password: string }) {
+  let errors: { email?: string; password?: string } = {};
+  if (!data.email) {
+    errors.email = "You must provide an email address";
+  } else if (!data.email?.includes("@")) {
+    errors.email = "Invalid email";
+  }
+
+  if (!data.password) {
+    errors.password = "You must provide a password";
+  }
+
+  return Object.keys(errors).length ? errors : null;
+}
+
+export const meta = () => {
+  return [{ title: "Trellix Login" }];
+};
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const email = String(formData.get("email"));
+  const password = String(formData.get("password"));
+  const errors = validate({ email, password });
+  if (errors) {
+    return data({ errors }, { status: 400 });
+  }
+  try {
+    const { id } = await login(email, password);
+    return redirect("/home", {
+      headers: {
+        "Set-Cookie": await authCookie.serialize(id),
+      },
+    });
+  } catch (error) {
+    return data({
+      errors: {
+        email: undefined,
+        password: getError(error, new Error("Incorrect password")).message,
+      },
+    });
+  }
+}
+
+export default function Login({ actionData }: Route.ComponentProps) {
+  const errors = actionData?.errors;
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
@@ -15,13 +70,16 @@ function LoginForm() {
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form className="space-y-6" action="#" method="POST">
+        <Form className="space-y-6" action="#" method="POST">
           <div>
             <label
               htmlFor="email"
               className="block text-sm/6 font-medium text-gray-900"
             >
-              Email address
+              Email address{" "}
+              {errors?.email ? (
+                <span className="text-red-500">{errors.email}</span>
+              ) : null}
             </label>
             <div className="mt-2">
               <input
@@ -41,7 +99,10 @@ function LoginForm() {
                 htmlFor="password"
                 className="block text-sm/6 font-medium text-gray-900"
               >
-                Password
+                Password{" "}
+                {errors?.password ? (
+                  <span className="text-red-500">{errors.password}</span>
+                ) : null}
               </label>
               <div className="text-sm">
                 <a
@@ -72,7 +133,7 @@ function LoginForm() {
               Sign in
             </button>
           </div>
-        </form>
+        </Form>
 
         <p className="mt-10 text-center text-sm/6 text-gray-500">
           Don't have an account?{" "}
@@ -86,8 +147,4 @@ function LoginForm() {
       </div>
     </div>
   );
-}
-
-export default function Login() {
-  return <LoginForm />;
 }

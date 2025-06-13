@@ -1,20 +1,15 @@
 import type { ActionFunctionArgs } from "react-router";
-import { Form, Link } from "react-router";
+import { data, Form, Link } from "react-router";
 import type { Route } from "./+types/signup";
 import { authCookie } from "~/auth.server";
 import { redirect } from "react-router";
+import { accountExists, createAccount } from "~/server/database/account.server";
 
-function createAccount({
-  email,
-  password,
-}: {
-  email: string;
-  password: string;
-}) {
-  return { id: 1 };
-}
+export const meta = () => {
+  return [{ title: "Trellix Signup" }];
+};
 
-function validate(data: {
+async function validate(data: {
   email: string;
   password: string;
   repeatPassword: string;
@@ -25,11 +20,16 @@ function validate(data: {
   } else if (!data.email?.includes("@")) {
     errors.email = "Invalid email";
   }
+
   if (!data.password) {
     errors.password = "You must provide a password";
   } else if (data.password !== data.repeatPassword) {
     errors.password = "Passwords do not match";
   }
+  if (!errors.email && (await accountExists(data.email))) {
+    errors.email = `User with email ${data.email} already exists`;
+  }
+
   return Object.keys(errors).length ? errors : null;
 }
 
@@ -39,11 +39,11 @@ export async function action({ request }: ActionFunctionArgs) {
   const password = String(formData.get("password"));
   const repeatPassword = String(formData.get("repeatPassword"));
 
-  const errors = validate({ email, password, repeatPassword });
+  const errors = await validate({ email, password, repeatPassword });
   if (errors) {
-    return { errors };
+    return data({ errors }, { status: 400 });
   } else {
-    const user = createAccount({ email, password });
+    const user = await createAccount({ email, password });
     console.log("redirecting", user);
     return redirect("/", {
       headers: {
