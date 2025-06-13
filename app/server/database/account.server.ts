@@ -25,10 +25,11 @@ export async function createAccount({
 }
 
 export async function login(email: string, password: string) {
-  const user = await prisma.account.findUniqueOrThrow({
+  const user = await prisma.account.findUnique({
     where: { email },
     include: { Password: true },
   });
+  if (!user) throw new Error("User not found");
   if (!user.Password) {
     throw new Error("Internal db error");
   }
