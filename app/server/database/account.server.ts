@@ -1,8 +1,13 @@
 import { prisma } from "./prisma.server";
 import bcrypt from "bcrypt";
 
-export async function accountExists(email: string) {
+export async function accountExistsByEmail(email: string) {
   const account = await prisma.account.findFirst({ where: { email } });
+  return Boolean(account);
+}
+
+export async function accountExistsById(id: string) {
+  const account = await prisma.account.findFirst({ where: { id } });
   return Boolean(account);
 }
 

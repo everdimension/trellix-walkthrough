@@ -3,7 +3,12 @@ import { data, Form, Link } from "react-router";
 import type { Route } from "./+types/signup";
 import { authCookie } from "~/auth.server";
 import { redirect } from "react-router";
-import { accountExists, createAccount } from "~/server/database/account.server";
+import {
+  accountExistsByEmail,
+  createAccount,
+} from "~/server/database/account.server";
+import { Input } from "~/components/Input";
+import { Button } from "~/components/Button";
 
 export const meta = () => {
   return [{ title: "Trellix Signup" }];
@@ -26,7 +31,7 @@ async function validate(data: {
   } else if (data.password !== data.repeatPassword) {
     errors.password = "Passwords do not match";
   }
-  if (!errors.email && (await accountExists(data.email))) {
+  if (!errors.email && (await accountExistsByEmail(data.email))) {
     errors.email = `User with email ${data.email} already exists`;
   }
 
@@ -63,17 +68,17 @@ export default function Signup({ actionData }: Route.ComponentProps) {
           src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
           alt="Your Company"
         />
-        <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight [color:var(--text-900)]">
+        <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight [color:var(--neutral-900)]">
           Create your account
         </h2>
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <Form className="space-y-6" method="POST">
+        <Form className="grid gap-[30px]" method="POST">
           <div>
             <label
               htmlFor="email"
-              className="block text-sm/6 font-medium [color:var(--text-900)]"
+              className="block text-sm/6 font-medium [color:var(--neutral-900)]"
             >
               Email address{" "}
               {errors?.email ? (
@@ -81,13 +86,13 @@ export default function Signup({ actionData }: Route.ComponentProps) {
               ) : null}
             </label>
             <div className="mt-2">
-              <input
+              <Input
                 type="email"
                 name="email"
                 id="email"
                 autoComplete="email"
                 required
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                className="block w-full rounded-md px-3 py-1.5 text-base outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
               />
             </div>
           </div>
@@ -95,7 +100,7 @@ export default function Signup({ actionData }: Route.ComponentProps) {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm/6 font-medium [color:var(--text-900)]"
+              className="block text-sm/6 font-medium [color:var(--neutral-900)]"
             >
               Password{" "}
               {errors?.password ? (
@@ -103,43 +108,36 @@ export default function Signup({ actionData }: Route.ComponentProps) {
               ) : null}
             </label>
             <div className="mt-2">
-              <input
+              <Input
                 type="password"
                 name="password"
                 id="password"
                 autoComplete="new-password"
                 required
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                className="block w-full rounded-md px-3 py-1.5 text-base outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
               />
             </div>
           </div>
           <div>
             <label
               htmlFor="repeatPassword"
-              className="block text-sm/6 font-medium [color:var(--text-900)]"
+              className="block text-sm/6 font-medium [color:var(--neutral-900)]"
             >
               Repeat Password
             </label>
             <div className="mt-2">
-              <input
+              <Input
                 type="password"
                 name="repeatPassword"
                 id="repeatPassword"
                 autoComplete="new-password"
                 required
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                className="block w-full rounded-md px-3 py-1.5 text-base outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
               />
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-            >
-              Sign up
-            </button>
-          </div>
+          <Button className="py-1.5">Sign up</Button>
         </Form>
 
         <p className="mt-10 text-center text-sm/6 text-gray-500">
