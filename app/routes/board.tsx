@@ -1,8 +1,9 @@
 import type { Column } from "generated/prisma";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import type { ActionFunctionArgs } from "react-router";
-import { useFetcher, type LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import type { HTMLFormMethod } from "react-router";
+import { useFetcher } from "react-router";
 import invariant from "tiny-invariant";
 import { requireUserSession } from "~/auth.server";
 import { TextButton } from "~/components/Button";
@@ -15,6 +16,7 @@ import {
   renameBoardColumn,
 } from "~/server/database/boards.server";
 import type { Route } from "./+types/board";
+import { ensure } from "~/shared/ensure";
 
 function TrashIcon(props: React.SVGAttributes<SVGElement>) {
   return (
@@ -145,9 +147,10 @@ function ColumnName({
       action={`/boards/${boardId}?model=column&intent=rename`}
       onSubmit={(event) => {
         event.preventDefault();
-        fetcher.submit(event.currentTarget, {
-          method: "post",
-          action: `/boards/${boardId}?model=column&intent=rename`,
+        const form = event.currentTarget;
+        fetcher.submit(form, {
+          action: ensure(form.getAttribute("action")),
+          method: ensure(form.getAttribute("method")) as HTMLFormMethod,
           flushSync: true,
         });
         flushSync(() => {
@@ -230,11 +233,14 @@ export default function Board({ loaderData: { board } }: Route.ComponentProps) {
         >
           <newColumnFetcher.Form
             className="grid gap-[6px]"
+            method="post"
+            action={`/boards/${board.id}?model=column&intent=create`}
             onSubmit={(event) => {
               event.preventDefault();
-              newColumnFetcher.submit(event.currentTarget, {
-                action: `/boards/${board.id}?model=column&intent=create`,
-                method: "post",
+              const form = event.currentTarget;
+              newColumnFetcher.submit(form, {
+                action: ensure(form.getAttribute("action")),
+                method: ensure(form.getAttribute("method")) as HTMLFormMethod,
                 flushSync: true,
               });
               event.currentTarget.reset();
