@@ -85,6 +85,7 @@ function BoardList({ boards }: { boards: Board[] }) {
     <div style={{ display: "grid", gap: 20 }}>
       {boards.map((board) => (
         <Link
+          key={board.id}
           to={`/boards/${board.id}`}
           className="group [background-color:var(--z-index-1)] rounded-[8px] py-2 px-3"
         >

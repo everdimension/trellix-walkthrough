@@ -3,6 +3,7 @@ import classNames from "classnames";
 export function TextButton({
   className,
   paddingInline = 25,
+  style,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   paddingInline?: number;
@@ -10,13 +11,12 @@ export function TextButton({
   return (
     <button
       {...props}
-      style={{ ["--padding-inline" as string]: `${paddingInline}px` }}
+      style={{ ["--padding-inline" as string]: `${paddingInline}px`, ...style }}
       className={classNames(
         `bg-transparent
           [padding-inline:var(--padding-inline)]
           text-sm/6
           [line-height:1.5]
-          font-semibold
           text-blue-500
           hover:text-blue-600
           rounded-[4px]
