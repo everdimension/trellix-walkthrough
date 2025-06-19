@@ -4,9 +4,7 @@ import type React from "react";
 export function Input({
   className,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  ref?: React.RefObject<HTMLInputElement | null>;
-}) {
+}: React.ComponentPropsWithRef<"input">) {
   return (
     <input
       {...props}

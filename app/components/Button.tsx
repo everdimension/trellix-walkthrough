@@ -5,7 +5,7 @@ export function TextButton({
   paddingInline = 25,
   style,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+}: React.ComponentPropsWithRef<"button"> & {
   paddingInline?: number;
 }) {
   return (

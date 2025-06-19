@@ -15,6 +15,35 @@ export async function createBoard({
   });
 }
 
+async function assertUserBoard({
+  userId,
+  boardId,
+}: {
+  userId: string;
+  boardId: number;
+}) {
+  const board = await prisma.board.findUnique({
+    where: { id: boardId },
+  });
+  invariant(board?.accountId === userId, "Board not found");
+}
+
+export async function renameBoard({
+  userId,
+  boardId,
+  name,
+}: {
+  userId: string;
+  boardId: number;
+  name: string;
+}) {
+  await assertUserBoard({ userId, boardId });
+  await prisma.board.update({
+    where: { id: boardId },
+    data: { name },
+  });
+}
+
 export async function getUserBoards({ userId }: { userId: string }) {
   const boards = await prisma.board.findMany({
     where: { accountId: userId },
@@ -31,7 +60,7 @@ export async function getUserBoard({
 }) {
   const board = await prisma.board.findUnique({
     where: { accountId: userId, id: boardId },
-    include: { columns: true },
+    include: { columns: { include: { items: true } } },
   });
   return board;
 }
@@ -63,6 +92,21 @@ async function assertUserColumn({
     include: { Board: { select: { accountId: true } } },
   });
   invariant(column?.Board.accountId === userId, "Column not found");
+  return column;
+}
+
+async function assertUserItem({
+  userId,
+  itemId,
+}: {
+  userId: string;
+  itemId: string;
+}) {
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    include: { Board: { select: { accountId: true } } },
+  });
+  invariant(item?.Board.accountId === userId, "Item not found");
 }
 
 export async function deleteBoardColumn({
@@ -90,4 +134,47 @@ export async function renameBoardColumn({
     where: { id: columnId },
     data: { name },
   });
+}
+
+export async function createColumnItem({
+  userId,
+  columnId,
+  title,
+}: {
+  userId: string;
+  columnId: string;
+  title: string;
+}) {
+  const column = await assertUserColumn({ userId, columnId });
+
+  return prisma.item.create({
+    data: { title, columnId, boardId: column.boardId, order: 0 },
+  });
+}
+
+export async function renameColumnItem({
+  userId,
+  itemId,
+  title,
+}: {
+  userId: string;
+  itemId: string;
+  title: string;
+}) {
+  await assertUserItem({ userId, itemId });
+  return prisma.item.update({
+    where: { id: itemId },
+    data: { title },
+  });
+}
+
+export async function deleteColumnItem({
+  userId,
+  itemId,
+}: {
+  userId: string;
+  itemId: string;
+}) {
+  await assertUserItem({ userId, itemId });
+  return prisma.item.delete({ where: { id: itemId } });
 }

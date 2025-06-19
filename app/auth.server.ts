@@ -23,7 +23,7 @@ export const authCookie = createCookie("auth", {
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
   maxAge:
-    process.env.NODE_ENV === "production" ? COOKIE_MAX_AGE : 2 * ONE_HOUR_S,
+    process.env.NODE_ENV === "production" ? COOKIE_MAX_AGE : 12 * ONE_HOUR_S,
   path: "/",
 });
 
