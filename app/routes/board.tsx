@@ -1,9 +1,9 @@
 import type { Column, Item } from "generated/prisma";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import type { HTMLFormMethod } from "react-router";
-import { useFetcher, useFetchers } from "react-router";
+import { Form, useFetcher, useFetchers, useSubmit } from "react-router";
 import invariant from "tiny-invariant";
 import { requireUserSession } from "~/auth.server";
 import { TextButton } from "~/components/Button";
@@ -399,14 +399,10 @@ function CreateNewColumn({
   boardId: number;
   onCreate: () => void;
 }) {
-  const fetcher = useFetcher();
+  const submit = useSubmit();
   return (
-    <ColumnWrapper
-      style={{
-        minWidth: "10rem",
-      }}
-    >
-      <fetcher.Form
+    <ColumnWrapper style={{ minWidth: "10rem" }}>
+      <Form
         className="grid gap-[6px]"
         method="post"
         action={`/boards/${boardId}?method=createBoardColumn`}
@@ -415,10 +411,11 @@ function CreateNewColumn({
           const form = event.currentTarget;
           const formData = new FormData(form);
           formData.set("id", globalThis.crypto.randomUUID());
-          fetcher.submit(formData, {
+          submit(formData, {
             action: ensure(form.getAttribute("action")),
             method: ensure(form.getAttribute("method")) as HTMLFormMethod,
             flushSync: true,
+            navigate: false,
           });
           event.currentTarget.reset();
           onCreate();
@@ -426,9 +423,6 @@ function CreateNewColumn({
       >
         <input type="hidden" name="boardId" value={boardId} />
         <Input
-          // temporary hack for focus while we're using the remount
-          // technique (key update for <CreateNewColumn/>) to create new fetchers for each submission
-          autoFocus={true}
           type="text"
           name="name"
           placeholder="column name"
@@ -438,7 +432,7 @@ function CreateNewColumn({
         <div>
           <TextButton paddingInline={0}>New Column</TextButton>
         </div>
-      </fetcher.Form>
+      </Form>
     </ColumnWrapper>
   );
 }
@@ -480,7 +474,6 @@ function PendingColumns({ columns }: { columns: Column[] }) {
 
 export default function Board({ loaderData: { board } }: Route.ComponentProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [key, setKey] = useState(0);
   const scrollBoardToRight = () => {
     invariant(scrollContainerRef.current, "Scroll container not found");
     scrollContainerRef.current.scrollLeft =
@@ -521,12 +514,8 @@ export default function Board({ loaderData: { board } }: Route.ComponentProps) {
         ))}
         <PendingColumns columns={board.columns} />
         <CreateNewColumn
-          key={key}
           boardId={board.id}
-          onCreate={useCallback(() => {
-            setKey((n) => n + 1);
-            scrollBoardToRight();
-          }, [])}
+          onCreate={() => scrollBoardToRight()}
         />
       </div>
     </div>
