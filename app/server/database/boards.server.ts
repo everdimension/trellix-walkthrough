@@ -67,17 +67,19 @@ export async function getUserBoard({
 
 export async function createBoardColumn({
   name,
+  id,
   boardId,
   userId,
 }: {
   name: string;
+  id: string;
   boardId: number;
   userId: string;
 }) {
   const board = await getUserBoard({ userId, boardId });
   invariant(board, "Board not found");
   invariant(board.accountId === userId, "Board not found");
-  return prisma.column.create({ data: { name, boardId } });
+  return prisma.column.create({ data: { id, name, boardId } });
 }
 
 async function assertUserColumn({
