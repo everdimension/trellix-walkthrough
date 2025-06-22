@@ -1,8 +1,8 @@
 import type { Column, Item } from "generated/prisma";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import type { HTMLFormMethod } from "react-router";
+import type { HTMLFormMethod, Fetcher } from "react-router";
 import { Form, useFetcher, useFetchers, useSubmit } from "react-router";
 import invariant from "tiny-invariant";
 import { requireUserSession } from "~/auth.server";
@@ -85,7 +85,8 @@ export async function action({ request }: ActionFunctionArgs) {
     case "createColumnItem": {
       const columnId = String(formData.get("columnId"));
       const title = String(formData.get("title"));
-      return createColumnItem({ userId, columnId, title });
+      const id = ensure(formData.get("id")?.toString());
+      return createColumnItem({ userId, id, columnId, title });
     }
     case "deleteColumnItem": {
       const itemId = String(formData.get("itemId"));
@@ -251,19 +252,38 @@ function ColumnName({
 function NewItemButton({
   boardId,
   column,
+  onAdd,
 }: {
   boardId: number;
   column: Column;
+  onAdd: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const fetcher = useFetcher();
+  const submit = useSubmit();
   return (
     <div>
-      <fetcher.Form
+      <Form
         method="post"
         action={`/boards/${boardId}?method=createColumnItem`}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+
+          const formData = new FormData(form);
+          formData.set("id", globalThis.crypto.randomUUID());
+
+          submit(formData, {
+            action: ensure(form.getAttribute("action")),
+            method: ensure(form.getAttribute("method")) as HTMLFormMethod,
+            navigate: false,
+            flushSync: true,
+          });
+          form.reset();
+          form.querySelector("textarea")?.focus();
+          onAdd();
+        }}
       >
         <input type="hidden" name="columnId" value={column.id} />
         <div className="grid gap-[12px]" hidden={!editing}>
@@ -273,6 +293,12 @@ function NewItemButton({
             name="title"
             className="bg-[var(--white)] px-2.5 py-1 rounded-[6px]"
             placeholder="Enter card name"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.form?.querySelector("button")?.click();
+              }
+            }}
           />
           <div className="flex justify-between">
             <TextButton paddingInline={0}>Save</TextButton>
@@ -290,7 +316,7 @@ function NewItemButton({
             </TextButton>
           </div>
         </div>
-      </fetcher.Form>
+      </Form>
 
       <TextButton
         ref={buttonRef}
@@ -305,7 +331,7 @@ function NewItemButton({
         style={{
           textAlign: "start",
           fontSize: "0.8em",
-          marginTop: 24,
+          marginTop: 14,
         }}
       >
         Add Card
@@ -316,6 +342,7 @@ function NewItemButton({
 
 function ColumnItem({
   item,
+  style,
   ...props
 }: React.ComponentPropsWithRef<"div"> & { item: Item }) {
   const fetcher = useFetcher();
@@ -329,6 +356,7 @@ function ColumnItem({
         paddingInline: 12,
         minHeight: "3em",
         borderRadius: 6,
+        ...style,
       }}
       {...props}
     >
@@ -361,6 +389,53 @@ function ColumnItem({
   );
 }
 
+function getPendingItems(
+  fetchers: Fetcher[],
+  { columnId, boardId }: { columnId: string; boardId: number }
+): Item[] {
+  return fetchers
+    .filter((fetcher) => {
+      if (fetcher.formAction && fetcher.formData) {
+        const url = new URL(fetcher.formAction, location.origin);
+        const method = url.searchParams.get("method");
+        return (
+          fetcher.formData.get("columnId") === columnId &&
+          method === "createColumnItem"
+        );
+      }
+    })
+    .map((fetcher) => ({
+      boardId,
+      columnId,
+      content: null,
+      id: ensure(fetcher.formData?.get("id")?.toString()),
+      order: 0,
+      title: ensure(fetcher.formData?.get("title")?.toString()),
+    }));
+}
+
+function PendingItems({
+  columnId,
+  boardId,
+  items,
+}: {
+  columnId: string;
+  boardId: number;
+  items: Item[];
+}) {
+  const fetchers = useFetchers();
+  const existingItemsIds = useMemo(
+    () => new Set(items.map((item) => item.id)),
+    [items]
+  );
+  const pendingItems = getPendingItems(fetchers, { columnId, boardId });
+  return pendingItems
+    .filter((item) => !existingItemsIds.has(item.id))
+    .map((item) => (
+      <ColumnItem key={item.id} item={item} style={{ opacity: 0.5 }} />
+    ));
+}
+
 function ColumnComponent({
   column,
   items,
@@ -370,23 +445,53 @@ function ColumnComponent({
   items: Item[];
   style?: React.CSSProperties;
 }) {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const scrollDown = useCallback(() => {
+    invariant(scrollContainerRef.current, "Scroll container not mounted");
+    scrollContainerRef.current.scrollTop =
+      scrollContainerRef.current.scrollHeight;
+  }, []);
   return (
-    <ColumnWrapper style={style}>
-      <div className="grid gap-[20px]">
-        <div className="grid [grid-template-columns:1fr_auto] justify-items-start">
-          <ColumnName
-            boardId={column.boardId}
-            column={column}
-            style={{ color: "var(--neutral-400)" }}
-          />
-          <RemoveColumnButton boardId={column.boardId} columnId={column.id} />
-        </div>
-        <div className="grid gap-[12px]">
-          {items.map((item) => (
-            <ColumnItem key={item.id} item={item} />
-          ))}
-          <NewItemButton boardId={column.boardId} column={column} />
-        </div>
+    <ColumnWrapper
+      style={{
+        maxHeight: "100%",
+        display: "grid",
+        gridTemplateRows: "auto 1fr auto",
+        padding: 0,
+        ...style,
+      }}
+    >
+      <div
+        className="grid [grid-template-columns:1fr_auto] justify-items-start"
+        style={{ padding: 10 }}
+      >
+        <ColumnName
+          boardId={column.boardId}
+          column={column}
+          style={{ color: "var(--neutral-400)" }}
+        />
+        <RemoveColumnButton boardId={column.boardId} columnId={column.id} />
+      </div>
+      <div
+        ref={scrollContainerRef}
+        className="grid gap-[12px]"
+        style={{ padding: 10, overflowY: "auto" }}
+      >
+        {items.map((item) => (
+          <ColumnItem key={item.id} item={item} />
+        ))}
+        <PendingItems
+          columnId={column.id}
+          boardId={column.boardId}
+          items={items}
+        />
+      </div>
+      <div style={{ padding: 10 }}>
+        <NewItemButton
+          boardId={column.boardId}
+          column={column}
+          onAdd={scrollDown}
+        />
       </div>
     </ColumnWrapper>
   );
@@ -417,7 +522,7 @@ function CreateNewColumn({
             flushSync: true,
             navigate: false,
           });
-          event.currentTarget.reset();
+          form.reset();
           onCreate();
         }}
       >
@@ -480,7 +585,10 @@ export default function Board({ loaderData: { board } }: Route.ComponentProps) {
       scrollContainerRef.current.scrollWidth;
   };
   return (
-    <div className="grid gap-[40px] page-top">
+    <div
+      className="grid gap-[40px] page-top"
+      style={{ height: "calc(100vh - 80px)", alignContent: "start" }}
+    >
       <ContentColumn className="mx-0!">
         <h2
           className="text-2xl"

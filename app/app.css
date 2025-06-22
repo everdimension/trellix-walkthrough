@@ -8,6 +8,9 @@
 html,
 body {
   @apply bg-white dark:bg-gray-950;
+
+  height: 100%;
+
   color: var(--neutral-900);
   background-color: var(--neutral-100);
 }

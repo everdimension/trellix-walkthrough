@@ -87,6 +87,7 @@ export default function Signup({ actionData }: Route.ComponentProps) {
             </label>
             <div className="mt-2">
               <Input
+                autoFocus={true}
                 type="email"
                 name="email"
                 id="email"

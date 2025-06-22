@@ -141,16 +141,18 @@ export async function renameBoardColumn({
 export async function createColumnItem({
   userId,
   columnId,
+  id,
   title,
 }: {
   userId: string;
   columnId: string;
+  id: string;
   title: string;
 }) {
   const column = await assertUserColumn({ userId, columnId });
 
   return prisma.item.create({
-    data: { title, columnId, boardId: column.boardId, order: 0 },
+    data: { id, title, columnId, boardId: column.boardId, order: 0 },
   });
 }
 
